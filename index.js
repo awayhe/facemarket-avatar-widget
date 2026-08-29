@@ -392,5 +392,5 @@ if (isProd) {
 }
 
 app.listen(PORT, () => {
-  console.log(`liveavatar-poc listening on http://localhost:${PORT} (${isProd ? "production" : "dev + Vite HMR"})`);
+  console.log(`facemarket-avatar-widget listening on http://localhost:${PORT} (${isProd ? "production" : "dev + Vite HMR"})`);
 });
