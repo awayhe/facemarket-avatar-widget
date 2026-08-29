@@ -1,10 +1,10 @@
 # facemarket-avatar-widget
 
-A proof-of-concept for real-time [FaceMarket](https://facemarket.ai) live-avatar
-video calls: a single Node/Express server that proxies FaceMarket's platform
-APIs (so your API key never reaches the browser), plus a reusable, embeddable,
-framework-free `FaceMarketWidget` UI component built on
-`@sanseng/liveavatar-js-sdk`'s Direct Mode.
+A self-hosted integration for real-time [FaceMarket](https://facemarket.ai)
+live-avatar video calls: a single Node/Express server that proxies
+FaceMarket's platform APIs (so your API key never reaches the browser), plus
+a reusable, embeddable, framework-free `FaceMarketWidget` UI component built
+on `@sanseng/liveavatar-js-sdk`'s Direct Mode.
 
 中文版本: [`README.zh-CN.md`](./README.zh-CN.md)
 
@@ -24,9 +24,9 @@ framework-free `FaceMarketWidget` UI component built on
   `web/src/demo.js` (widget embedded in a small box on a page that drives its
   own avatar selection).
 
-This is a proof-of-concept, not a production-hardened service — see
-[`docs/api.md`](docs/api.md)'s "Known limitations" section (no caller
-authentication, in-memory state) before deploying it for real traffic.
+There are a few known limitations worth reviewing before deploying for real
+traffic — see [`docs/api.md`](docs/api.md)'s "Known limitations" section (no
+caller authentication, in-memory state).
 
 ## Requirements
 

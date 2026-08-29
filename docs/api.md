@@ -233,7 +233,7 @@ IP (`req.ip`). If this app runs behind a reverse proxy, set `TRUST_PROXY`
 (see `.env.example`) so `req.ip` reflects the real visitor instead of the
 proxy's own address — see [`nginx.md`](./nginx.md).
 
-## Known limitations (by design, for this POC)
+## Known limitations (by design)
 
 - **No caller authentication.** Anyone who can reach this server can call
   every endpoint — the rate limit reduces abuse volume, but doesn't verify

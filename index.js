@@ -221,7 +221,8 @@ async function stopFaceMarketSession(sessionId) {
 }
 
 // TODO: before minting a session, verify the caller is allowed to use this
-// avatar (check your own app's login/session). Skipped here — POC only.
+// avatar (check your own app's login/session) — not implemented yet, since
+// this project doesn't have its own auth system to check against.
 apiRouter.post("/session/start", sessionStartLimiter, async (req, res) => {
   const { avatarId } = req.body ?? {};
   if (!avatarId) {

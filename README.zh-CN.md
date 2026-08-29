@@ -1,10 +1,10 @@
 # facemarket-avatar-widget
 
-一个基于 [FaceMarket](https://facemarket.ai) 的实时数字人视频通话 POC：一个
-单独的 Node/Express 服务端，代理 FaceMarket 的平台接口（保证 API key 永远
-不会到达浏览器），再加上一个可复用、可嵌入、不依赖任何前端框架的
-`FaceMarketWidget` UI 组件，基于 `@sanseng/liveavatar-js-sdk` 的 Direct Mode
-构建。
+一个基于 [FaceMarket](https://facemarket.ai) 的实时数字人视频通话自托管集
+成方案：一个单独的 Node/Express 服务端，代理 FaceMarket 的平台接口（保证
+API key 永远不会到达浏览器），再加上一个可复用、可嵌入、不依赖任何前端框
+架的 `FaceMarketWidget` UI 组件，基于 `@sanseng/liveavatar-js-sdk` 的
+Direct Mode 构建。
 
 English version: [`README.md`](./README.md)
 
@@ -23,9 +23,9 @@ English version: [`README.md`](./README.md)
   `web/src/demo.js`（widget 嵌在页面里一个小盒子里，页面自己管理 avatar
   选择）。
 
-这是一个概念验证项目（POC），不是可以直接扛生产流量的服务——正式部署之前
-先看一下 [`docs/api.zh-CN.md`](docs/api.zh-CN.md) 的"已知的局限性"一节（没
-有调用方身份认证、状态存在内存里）。
+正式承接生产流量之前，有几个已知的局限性值得先了解一下——见
+[`docs/api.zh-CN.md`](docs/api.zh-CN.md) 的"已知的局限性"一节（没有调用方
+身份认证、状态存在内存里）。
 
 ## 环境要求
 
