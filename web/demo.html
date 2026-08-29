@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FaceMarketWidget — Multi-Avatar Demo</title>
+    <style>
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: #f2f2f5;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #1c1c1e;
+      }
+      .page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 3rem 1.5rem 4rem;
+      }
+      .page h1 { font-size: 1.6rem; margin: 0 0 0.4rem; }
+      .page p.lede { color: #555; margin: 0 0 2rem; max-width: 60ch; line-height: 1.5; }
+      .avatar-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        max-width: 380px;
+        margin: 0 auto 1.2rem;
+      }
+      .avatar-chip {
+        font: inherit;
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        background: #fff;
+        color: #1c1c1e;
+        cursor: pointer;
+      }
+      .avatar-chip:hover { background: #ececef; }
+      .avatar-chip.active { background: #1c1c1e; color: #fff; border-color: #1c1c1e; }
+      .widget-frame {
+        width: 380px;
+        height: 640px;
+        margin: 0 auto;
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>Multi-Avatar Demo</h1>
+      <p class="lede">
+        The avatar list below is regular page markup, not part of
+        <code>FaceMarketWidget</code> — this page owns avatar selection and calls
+        <code>widget.callAvatar(avatar)</code> to start the call inside the box.
+      </p>
+      <div id="avatar-list" class="avatar-list">Loading avatars…</div>
+      <div id="widget-frame" class="widget-frame"></div>
+    </div>
+    <script type="module" src="/src/demo.js"></script>
+  </body>
+</html>
