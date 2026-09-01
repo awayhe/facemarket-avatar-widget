@@ -1,5 +1,6 @@
 import "dotenv/config";
 import path from "node:path";
+import http from "node:http";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs/promises";
 import express from "express";
@@ -345,6 +346,15 @@ const isDemoRequest = (req) => {
 // branch's own catch-all for why dev needs a plain "*" instead.
 const catchAllPath = BASE_PATH ? `${BASE_PATH}/*` : "*";
 
+// Created up front (instead of via app.listen()) so dev mode can hand it to
+// Vite below as the HMR websocket's transport — without this, Vite's
+// middlewareMode spins up its own standalone HMR websocket server on a
+// separate port (24678 by default) that bypasses Express and nginx
+// entirely, which just fails outright once the app is served through a
+// reverse proxy (see docs/nginx/location.conf's Upgrade/Connection pair,
+// written for HMR to share this same connection).
+const httpServer = http.createServer(app);
+
 if (isProd) {
   const distPath = path.join(__dirname, "web/dist");
   // Mounted at BASE_PATH ("/" when root-mounted) so a built asset URL like
@@ -361,7 +371,7 @@ if (isProd) {
 } else {
   const vite = await createViteServer({
     root: path.join(__dirname, "web"),
-    server: { middlewareMode: true },
+    server: { middlewareMode: true, hmr: { server: httpServer } },
     appType: "custom",
   });
   // Mounted unprefixed on purpose: Vite's own middleware already reads
@@ -392,6 +402,6 @@ if (isProd) {
   });
 }
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`facemarket-avatar-widget listening on http://localhost:${PORT} (${isProd ? "production" : "dev + Vite HMR"})`);
 });
