@@ -72,8 +72,3 @@ npm start       # NODE_ENV=production node index.js —— 要先跑过 build
 - [`docs/nginx.zh-CN.md`](docs/nginx.zh-CN.md)（[English](docs/nginx.md)）——
   反向代理部署说明，配套的可直接复制使用的配置片段在
   [`docs/nginx/`](docs/nginx/)。
-- [`CLAUDE.md`](CLAUDE.md) —— 给要在这个代码库上做开发的人看的架构说明和
-  实现细节。
-- [`plans/adaptive-leaping-fairy.md`](plans/adaptive-leaping-fairy.md) —— 最
-  初的设计思路，包括为什么选了 Direct Mode 而不是 FaceMarket 那个没有公开
-  文档的 Auth Mode token 接口。

@@ -73,8 +73,3 @@ All via `.env` at the project root (see `.env.example`):
 - [`docs/nginx.md`](docs/nginx.md) ([中文](docs/nginx.zh-CN.md)) — reverse-proxy
   deployment setup, with copy-paste-able config snippets in
   [`docs/nginx/`](docs/nginx/).
-- [`CLAUDE.md`](CLAUDE.md) — architecture notes and implementation details
-  for anyone working on this codebase.
-- [`plans/adaptive-leaping-fairy.md`](plans/adaptive-leaping-fairy.md) — the
-  original design rationale, including why Direct Mode was chosen over
-  FaceMarket's undocumented Auth Mode token endpoint.
