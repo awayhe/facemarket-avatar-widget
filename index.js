@@ -362,7 +362,12 @@ if (isProd) {
   // `base` actually emits into the HTML) resolves to dist/assets/x.js —
   // express.static has no base-path awareness of its own, unlike Vite's own
   // dev middleware below, which already handles this internally.
-  app.use(BASE_PATH || "/", express.static(distPath));
+  // `index: false` so express.static never auto-serves dist/index.html (or
+  // demo.html) itself for a directory request — it must always fall through
+  // to the catch-all handler below, which is the only place that runs
+  // injectBasePathScript(); otherwise the browser gets window.__BASE_PATH__
+  // unset, silently defaults to "", and every API call 404s.
+  app.use(BASE_PATH || "/", express.static(distPath, { index: false }));
   app.get(catchAllPath, async (req, res) => {
     const htmlPath = path.join(distPath, isDemoRequest(req) ? "demo.html" : "index.html");
     const html = injectBasePathScript(await fs.readFile(htmlPath, "utf-8"));
