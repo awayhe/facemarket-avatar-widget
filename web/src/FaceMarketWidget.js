@@ -96,8 +96,7 @@ function escapeHtml(text) {
 // Small external-link glyph, inlined right after each linkified URL (see
 // linkifyText's linkSuffix) — an SVG contributes no characters to
 // textContent, so it can't throw off character-offset math anywhere text
-// is measured (e.g. getVisualLineTexts) or compared (e.g. showCaption's
-// startsWith check against captionText.textContent).
+// is measured (e.g. getVisualLineTexts).
 const LINK_ICON =
   '<svg class="link-icon" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
 
@@ -154,6 +153,10 @@ const CAPTION_ADVANCE_TRANSITION_S = 0.5;
 // a manual-scroll drag rather than a tap — below this, pointerup is left
 // alone so a tap on a caption link still produces a normal click.
 const CAPTION_DRAG_THRESHOLD_PX = 8;
+// How many superseded conversation turns to keep rejecting late caption
+// updates for (see _claimCaptionTurn). Only the turn or two either side of
+// the current one can realistically still have events arriving.
+const RETIRED_CAPTION_TURNS_KEPT = 8;
 
 const STYLE_TEXT = `
   :host {
@@ -723,6 +726,30 @@ export class FaceMarketWidget {
 
     // ---- caption state ----
     this.captionsEnabled = true;
+    // The raw string last handed to showCaption(). Kept alongside the
+    // rendered DOM because captionText.textContent is *not* a faithful
+    // round-trip of it: the text goes through innerHTML (see showCaption),
+    // and the HTML parser normalizes as it goes — "\r\n" and lone "\r"
+    // both come back as "\n", for one. Comparing a new caption against
+    // that round-tripped copy made same-turn text look like a different
+    // turn, which reset the scroll to the top and replayed it.
+    this.captionSourceText = "";
+    // Which conversation turn currently owns the caption, whether the
+    // avatar has started answering it, and which turns have been
+    // superseded. ASR and answer events for one exchange share a single
+    // questionId (the server's requestId — the SDK keys its conversation
+    // session off it, and an answer's response.done disposes the very
+    // session the ASR final created), so the turn id alone can't order
+    // them. The server can send input.asr.final *after* the answer has
+    // already streamed and scrolled: that late ASR knocked the answer off
+    // the caption, and the response.done right behind it put the answer
+    // back, replaying its scroll from the top. Whether it happens depends
+    // on the avatar backend's ASR timing — reproduced on avatars running
+    // Gemini 3.1 Flash Live, while others never showed it. Once an answer
+    // has started, ASR text for that same turn is stale and gets dropped.
+    this.captionTurnId = null;
+    this.captionTurnAnswerStarted = false;
+    this.retiredCaptionTurnIds = new Set();
     this.captionLines = [];
     this.captionCurrentLine = 0;
     this.captionAdvanceTimer = null;
@@ -1469,10 +1496,53 @@ export class FaceMarketWidget {
     if (!this.captionReviewing) this.scheduleCaptionAdvance();
   };
 
+  // Makes `questionId` the turn that owns the caption, retiring whichever
+  // turn held it before. Returns false — meaning "drop this update" — for a
+  // turn the caption has already moved past.
+  _claimCaptionTurn = (questionId) => {
+    if (questionId == null) return true; // not turn-scoped (e.g. the mic-permission notice)
+    if (this.retiredCaptionTurnIds.has(questionId)) return false;
+    if (this.captionTurnId !== null && this.captionTurnId !== questionId) {
+      this.retiredCaptionTurnIds.add(this.captionTurnId);
+      // Only recent turns can plausibly still have events in flight, so cap
+      // the set rather than letting it grow for the whole call. Sets iterate
+      // in insertion order, so this drops the oldest entry.
+      if (this.retiredCaptionTurnIds.size > RETIRED_CAPTION_TURNS_KEPT) {
+        this.retiredCaptionTurnIds.delete(this.retiredCaptionTurnIds.values().next().value);
+      }
+      this.captionTurnAnswerStarted = false;
+    }
+    this.captionTurnId = questionId;
+    return true;
+  };
+
+  // Gate for caption updates carrying the *user's* words — a typed question
+  // or ASR. Rejected once the avatar has started answering this turn, since
+  // the server can deliver input.asr.final that late (see captionTurnId).
+  claimCaptionTurnForUserText = (questionId) => {
+    if (!this._claimCaptionTurn(questionId)) return false;
+    return !this.captionTurnAnswerStarted;
+  };
+
+  // Gate for caption updates carrying the *avatar's* answer. An answer
+  // always supersedes the user text it replies to.
+  claimCaptionTurnForAnswer = (questionId) => {
+    if (!this._claimCaptionTurn(questionId)) return false;
+    this.captionTurnAnswerStarted = true;
+    return true;
+  };
+
   showCaption = (text) => {
     if (!this.captionText || !this.captionsEnabled) return;
     const nextText = text || "";
-    if (!nextText.startsWith(this.captionText.textContent)) {
+    // Nothing new to show. Bail before touching the DOM or the scroll
+    // position — re-rendering identical text would restart auto-advance
+    // and re-run the (expensive, per-character) line measurement for no
+    // reason. This is the common case at the end of a turn: the SDK's
+    // conversation:answer:completed carries a fullAnswer that is exactly
+    // the concatenation of the chunks already shown.
+    if (nextText === this.captionSourceText) return;
+    if (!nextText.startsWith(this.captionSourceText)) {
       this.captionCurrentLine = 0;
       this.captionReviewing = false;
       if (this.captionAdvanceTimer) {
@@ -1485,8 +1555,10 @@ export class FaceMarketWidget {
     // real <a> with a trailing icon (see LINK_ICON) — getVisualLineTexts
     // walks every text node under the element, so this mix of text + <a>
     // nodes still measures real rendered line breaks correctly (icon width
-    // included), and the .startsWith() check above compares against
-    // textContent, which strips the tags back out to plain text again.
+    // included). The fresh-turn check above deliberately compares raw
+    // source strings rather than reading the text back off the DOM (see
+    // captionSourceText).
+    this.captionSourceText = nextText;
     this.captionText.innerHTML = linkifyText(nextText, { linkSuffix: LINK_ICON });
     this.captionLines = this.getVisualLineTexts(this.captionText);
     this.scheduleCaptionAdvance();
@@ -1656,6 +1728,10 @@ export class FaceMarketWidget {
       this.captionText.style.transform = "translateY(0px)";
       this.captionText.textContent = "";
     }
+    this.captionSourceText = "";
+    this.captionTurnId = null;
+    this.captionTurnAnswerStarted = false;
+    this.retiredCaptionTurnIds.clear();
     this.captionCurrentLine = 0;
     this.captionLines = [];
     this.captionReviewing = false;
@@ -1725,22 +1801,22 @@ export class FaceMarketWidget {
 
       this.client.events.on("conversation:question:sent", ({ questionId, text }) => {
         this.handleUserTurn(questionId, text);
-        this.showCaption(text);
+        if (this.claimCaptionTurnForUserText(questionId)) this.showCaption(text);
       });
 
-      this.client.events.on("conversation:asr:chunk", ({ text }) => {
-        this.showCaption(text);
+      this.client.events.on("conversation:asr:chunk", ({ questionId, text }) => {
+        if (this.claimCaptionTurnForUserText(questionId)) this.showCaption(text);
       });
 
       this.client.events.on("conversation:asr:received", ({ questionId, text }) => {
         this.handleUserTurn(questionId, text);
-        this.showCaption(text);
+        if (this.claimCaptionTurnForUserText(questionId)) this.showCaption(text);
       });
 
       this.client.events.on("conversation:answer:chunk", ({ questionId, chunk }) => {
         const next = (this.answerByQuestion.get(questionId) ?? "") + chunk;
         this.answerByQuestion.set(questionId, next);
-        this.showCaption(next);
+        if (this.claimCaptionTurnForAnswer(questionId)) this.showCaption(next);
 
         const botBubble = this.botBubbleByQuestion.get(questionId);
         if (botBubble) {
@@ -1751,7 +1827,10 @@ export class FaceMarketWidget {
 
       this.client.events.on("conversation:answer:completed", ({ questionId, fullAnswer }) => {
         this.answerByQuestion.delete(questionId);
-        this.showCaption(fullAnswer);
+        // Caption only — the chat bubble below is keyed by questionId, so a
+        // late completion still lands on the right bubble and must not be
+        // dropped along with the caption update.
+        if (this.claimCaptionTurnForAnswer(questionId)) this.showCaption(fullAnswer);
 
         const botBubble = this.botBubbleByQuestion.get(questionId);
         if (botBubble) {
